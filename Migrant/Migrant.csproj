@@ -21,6 +21,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Migrant.Data\Migrant.Data.csproj" />
+    <ProjectReference Include="..\Migrator.Application\Migrant.Application.csproj" />
   </ItemGroup>
 
 </Project>

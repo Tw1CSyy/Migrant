@@ -1,9 +1,17 @@
 using Microsoft.EntityFrameworkCore;
 using Migrant.Data.Context;
+using Migrant.Data.Extensions;
+using Migrant.Application.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
+
+// 1. Регистрируем Data слой
+builder.Services.AddData(builder.Configuration);
+
+// 2. Регистрируем Application слой
+builder.Services.AddApplication();
 
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
