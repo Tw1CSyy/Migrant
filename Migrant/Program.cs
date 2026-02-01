@@ -1,7 +1,9 @@
 using Microsoft.EntityFrameworkCore;
+using Migrant.Application.Extensions;
 using Migrant.Data.Context;
 using Migrant.Data.Extensions;
-using Migrant.Application.Extensions;
+using Migrant.Options;
+using Migrant.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -23,6 +25,16 @@ builder.Services.AddDbContext<PassportDbContext>(options =>
     options.UseNpgsql(
         builder.Configuration.GetConnectionString("Postgres"));
 });
+
+builder.Services.Configure<PassportUpdateOptions>(
+    builder.Configuration.GetSection("PassportUpdate"));
+
+builder.Services.AddHttpClient<PassportFileDownloader>();
+
+builder.Services.AddSingleton<ZipExtractor>();
+builder.Services.AddSingleton<PassportCsvReader>();
+
+builder.Services.AddHostedService<PassportUpdateBackgroundService>();
 
 var app = builder.Build();
 

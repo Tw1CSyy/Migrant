@@ -4,7 +4,7 @@ using Migrant.Data.Entities;
 
 namespace Migrant.Application.Services
 {
-    internal class PassportUpdateService
+    public class PassportUpdateService
     {
         private readonly PassportDbContext _db;
 
