@@ -9,6 +9,7 @@ namespace Migrant.Options
     public class PassportUpdateOptions
     {
         public string RunAt { get; set; } = null!;
+        public string SourcePath { get; set; } = null!;
         public string SourceUrl { get; set; } = null!;
     }
 }

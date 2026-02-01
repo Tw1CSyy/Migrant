@@ -36,6 +36,9 @@ builder.Services.AddSingleton<PassportCsvReader>();
 
 builder.Services.AddHostedService<PassportUpdateBackgroundService>();
 
+builder.Services.AddHttpClient();
+builder.Services.AddScoped<PassportFileSource>();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

@@ -37,7 +37,8 @@ namespace Migrant.Services
             var reader = scope.ServiceProvider.GetRequiredService<PassportCsvReader>();
             var updater = scope.ServiceProvider.GetRequiredService<PassportUpdateService>();
 
-            using var zip = await downloader.DownloadAsync(_options.SourceUrl, ct);
+            var source = scope.ServiceProvider.GetRequiredService<PassportFileSource>();
+            using var zip = await source.GetAsync(ct);
             using var csv = await extractor.ExtractCsvAsync(zip);
 
             var passports = await reader.ReadAsync(csv);
