@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.Options;
-using Migrant.Options;
-using Migrant.Application.Services;
+using Migrant.Application.Abstractions;
+using Migrant.Application.Options;
 
 namespace Migrant.Services
 {
@@ -24,26 +24,18 @@ namespace Migrant.Services
                 var delay = GetDelayUntilNextRun();
                 await Task.Delay(delay, stoppingToken);
 
-                await RunUpdate(stoppingToken);
+                await RunOnce(stoppingToken);
             }
         }
 
-        private async Task RunUpdate(CancellationToken ct)
+        private async Task RunOnce(CancellationToken ct)
         {
             using var scope = _scopeFactory.CreateScope();
 
-            var downloader = scope.ServiceProvider.GetRequiredService<PassportFileDownloader>();
-            var extractor = scope.ServiceProvider.GetRequiredService<ZipExtractor>();
-            var reader = scope.ServiceProvider.GetRequiredService<PassportCsvReader>();
-            var updater = scope.ServiceProvider.GetRequiredService<PassportUpdateService>();
+            var runner = scope.ServiceProvider
+                .GetRequiredService<IPassportUpdateRunner>();
 
-            var source = scope.ServiceProvider.GetRequiredService<PassportFileSource>();
-            using var zip = await source.GetAsync(ct);
-            using var csv = await extractor.ExtractCsvAsync(zip);
-
-            var passports = await reader.ReadAsync(csv);
-
-            await updater.UpdateAsync(passports, DateTime.UtcNow, ct);
+            await runner.RunAsync(ct);
         }
 
         private TimeSpan GetDelayUntilNextRun()

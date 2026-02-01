@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Migrant.Options
+namespace Migrant.Application.Options
 {
     public class PassportUpdateOptions
     {

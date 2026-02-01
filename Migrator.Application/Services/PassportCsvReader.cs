@@ -6,7 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Migrant.Services
+namespace Migrant.Application.Services
 {
     public class PassportCsvReader
     {
@@ -19,8 +19,8 @@ namespace Migrant.Services
 
             await foreach (var record in csvReader.GetRecordsAsync<dynamic>())
             {
-                string series = record.Series;
-                string number = record.Number;
+                string series = record.PASSP_SERIES;
+                string number = record.PASSP_NUMBER;
 
                 result.Add((series, number));
             }

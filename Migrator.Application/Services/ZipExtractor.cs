@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Migrant.Services
+namespace Migrant.Application.Services
 {
     public class ZipExtractor
     {
