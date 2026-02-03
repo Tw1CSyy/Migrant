@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Migrant.Application.Options;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -8,7 +9,7 @@ namespace Migrant.Application.Abstractions
 {
     public interface IPassportSource
     {
-        Task<IReadOnlyCollection<(string Series, string Number)>> GetPassportsAsync(
+        Task<IReadOnlyCollection<PassportKey>> GetPassportsAsync(
             CancellationToken ct);
     }
 }

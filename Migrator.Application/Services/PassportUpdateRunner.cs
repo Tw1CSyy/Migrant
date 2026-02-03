@@ -19,7 +19,7 @@ namespace Migrant.Application.Services
         }
 
         /// <summary>
-        /// Запуск обновлени ябазы данных
+        /// Запуск обновление базы данных
         /// </summary>
         public async Task RunAsync(CancellationToken ct)
         {
@@ -27,7 +27,6 @@ namespace Migrant.Application.Services
 
             await _updateService.UpdateAsync(
                 passports,
-                DateTime.UtcNow,
                 ct);
         }
     }

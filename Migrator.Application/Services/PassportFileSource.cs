@@ -29,7 +29,7 @@ namespace Migrant.Application.Services
         /// <summary>
         /// Получает исходный файл по пути в конфигурации проекта
         /// </summary>
-        public async Task<IReadOnlyCollection<(string, string)>> GetPassportsAsync(
+        public async Task<IReadOnlyCollection<PassportKey>> GetPassportsAsync(
             CancellationToken ct)
         {
             Stream sourceStream;

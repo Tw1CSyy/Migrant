@@ -1,4 +1,5 @@
 ﻿using CsvHelper;
+using Migrant.Application.Options;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -17,20 +18,19 @@ namespace Migrant.Application.Services
         /// Обрабатывает Csv файл и возвращает список строк из файла
         /// </summary>
         /// <param name="csv">Stream файла</param>
-        /// <returns>Task<List<(string Series, string Number)</returns>
-        public async Task<List<(string Series, string Number)>> ReadAsync(Stream csv)
+        public async Task<List<PassportKey>> ReadAsync(Stream csv)
         {
             using var reader = new StreamReader(csv);
             using var csvReader = new CsvReader(reader, CultureInfo.InvariantCulture);
 
-            var result = new List<(string, string)>();
+            var result = new List<PassportKey>();
 
             await foreach (var record in csvReader.GetRecordsAsync<dynamic>())
             {
                 string series = record.PASSP_SERIES;
                 string number = record.PASSP_NUMBER;
 
-                result.Add((series, number));
+                result.Add(new PassportKey(series, number));
             }
 
             return result;

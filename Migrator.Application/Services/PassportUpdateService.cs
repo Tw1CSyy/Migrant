@@ -1,6 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Migrant.Application.Options;
 using Migrant.Data.Context;
 using Migrant.Data.Entities;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Migrant.Application.Services
 {
@@ -20,10 +22,8 @@ namespace Migrant.Application.Services
         /// Обновляет базу данных паспартов из исходных данных
         /// </summary>
         /// <param name="newList">Список паспортов из исходных данных</param>
-        /// <param name="updateDate">Дата обновления</param>
         public async Task UpdateAsync(
-            IReadOnlyCollection<(string Series, string Number)> newList,
-            DateTime updateDate,
+            IReadOnlyCollection<PassportKey> newList,
             CancellationToken ct = default)
         {
             var currentInactive = await _db.Passports
@@ -32,20 +32,21 @@ namespace Migrant.Application.Services
                 .ToListAsync(ct);
 
             var currentSet = currentInactive
-                .Select(p => (p.Series, p.Number))
+                .Select(p => new PassportKey(p.Series, p.Number))
                 .ToHashSet();
 
             var newSet = newList.ToHashSet();
+            var updateDate = DateTime.Now;
 
             // ADD
             var toAdd = newSet.Except(currentSet);
-            foreach (var (series, number) in toAdd)
+            foreach (var key in toAdd)
             {
                 _db.Passports.Add(new PassportEntity
                 {
                     Id = Guid.NewGuid(),
-                    Series = series,
-                    Number = number,
+                    Series = key.Series,
+                    Number = key.Number,
                     IsInactive = true,
                     CreatedAt = updateDate,
                     UpdatedAt = updateDate
@@ -54,8 +55,8 @@ namespace Migrant.Application.Services
                 _db.PassportChanges.Add(new PassportChangeEntity
                 {
                     Id = Guid.NewGuid(),
-                    Series = series,
-                    Number = number,
+                    Series = key.Series,
+                    Number = key.Number,
                     ChangeType = PassportChangeType.Added,
                     ChangeDate = updateDate
                 });
@@ -63,8 +64,8 @@ namespace Migrant.Application.Services
                 _db.PassportStatusHistories.Add(new PassportStatusHistoryEntity
                 {
                     Id = Guid.NewGuid(),
-                    Series = series,
-                    Number = number,
+                    Series = key.Series,
+                    Number = key.Number,
                     IsInactive = true,
                     ChangedAt = updateDate
                 });
