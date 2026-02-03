@@ -6,16 +6,10 @@ using System.Threading.Tasks;
 
 namespace Migrant.Application.DTOs
 {
-    public class PassportHistoryDto
+    public class PassportStatusDto
     {
         public string Series { get; set; } = null!;
         public string Number { get; set; } = null!;
-        public List<PassportHistoryItemDto> History { get; set; } = new();
-    }
-
-    public class PassportHistoryItemDto
-    {
-        public DateTime Date { get; set; }
         public bool IsInactive { get; set; }
     }
 }

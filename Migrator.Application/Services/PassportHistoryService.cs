@@ -21,9 +21,11 @@ namespace Migrant.Application.Services
                 .AsNoTracking()
                 .Where(h => h.Series == series && h.Number == number)
                 .OrderBy(h => h.ChangedAt)
-                .Select(h => new PassportHistoryDto(
-                    h.IsInactive,
-                    h.ChangedAt))
+                .Select(h => new PassportHistoryDto()
+                {
+                    Series = h.Series,
+                    Number = number
+                })
                 .ToListAsync();
         }
     }

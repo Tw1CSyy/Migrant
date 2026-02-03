@@ -39,6 +39,8 @@ builder.Services.AddScoped<PassportFileSource>();
 builder.Services.AddScoped<IPassportSource, PassportFileSource>();
 builder.Services.AddScoped<IPassportUpdateRunner, PassportUpdateRunner>();
 
+builder.Services.AddScoped<PassportQueryService>();
+
 builder.Services.Configure<PassportUpdateOptions>(
     builder.Configuration.GetSection("PassportUpdate"));
 
