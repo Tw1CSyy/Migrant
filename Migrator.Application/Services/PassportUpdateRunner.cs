@@ -1,12 +1,10 @@
 ﻿using Migrant.Application.Abstractions;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Migrant.Application.Services
 {
+    /// <summary>
+    /// Сервис для запуска обновления базы данных
+    /// </summary>
     public class PassportUpdateRunner : IPassportUpdateRunner
     {
         private readonly IPassportSource _source;
@@ -20,6 +18,9 @@ namespace Migrant.Application.Services
             _updateService = updateService;
         }
 
+        /// <summary>
+        /// Запуск обновлени ябазы данных
+        /// </summary>
         public async Task RunAsync(CancellationToken ct)
         {
             var passports = await _source.GetPassportsAsync(ct);

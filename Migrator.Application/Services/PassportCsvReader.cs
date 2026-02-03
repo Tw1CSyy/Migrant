@@ -8,8 +8,16 @@ using System.Threading.Tasks;
 
 namespace Migrant.Application.Services
 {
+    /// <summary>
+    /// Сервис для обработки Csv файла
+    /// </summary>
     public class PassportCsvReader
     {
+        /// <summary>
+        /// Обрабатывает Csv файл и возвращает список строк из файла
+        /// </summary>
+        /// <param name="csv">Stream файла</param>
+        /// <returns>Task<List<(string Series, string Number)</returns>
         public async Task<List<(string Series, string Number)>> ReadAsync(Stream csv)
         {
             using var reader = new StreamReader(csv);

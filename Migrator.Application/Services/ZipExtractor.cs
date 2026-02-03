@@ -7,8 +7,15 @@ using System.Threading.Tasks;
 
 namespace Migrant.Application.Services
 {
+    /// <summary>
+    /// Сервис для разжатия исходного файла
+    /// </summary>
     public class ZipExtractor
     {
+        /// <summary>
+        /// Расжимает файл из zip архива
+        /// </summary>
+        /// <param name="zipStream">Stream файла</param>
         public async Task<Stream> ExtractCsvAsync(Stream zipStream)
         {
             using var archive = new ZipArchive(zipStream, ZipArchiveMode.Read);

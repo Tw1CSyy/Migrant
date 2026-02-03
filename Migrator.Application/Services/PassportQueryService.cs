@@ -4,6 +4,9 @@ using Migrant.Data.Context;
 
 namespace Migrant.Application.Services
 {
+    /// <summary>
+    /// Сервис для вывода данных API
+    /// </summary>
     public class PassportQueryService
     {
         private readonly PassportDbContext _db;

@@ -21,6 +21,9 @@ namespace Migrant.Controllers
             _queryService = queryService;
         }
 
+        /// <summary>
+        /// Ручное обновление базы
+        /// </summary>
         [HttpPost("update")]
         public IActionResult Update(CancellationToken ct)
         {

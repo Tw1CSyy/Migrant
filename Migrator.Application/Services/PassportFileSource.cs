@@ -1,14 +1,12 @@
 ﻿using Microsoft.Extensions.Options;
 using Migrant.Application.Abstractions;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Migrant.Application.Options;
 
 namespace Migrant.Application.Services
 {
+    /// <summary>
+    /// Сервис для загрузки исходного файла данных
+    /// </summary>
     public class PassportFileSource : IPassportSource
     {
         private readonly PassportUpdateOptions _options;
@@ -28,6 +26,9 @@ namespace Migrant.Application.Services
             _csv = csv;
         }
 
+        /// <summary>
+        /// Получает исходный файл по пути в конфигурации проекта
+        /// </summary>
         public async Task<IReadOnlyCollection<(string, string)>> GetPassportsAsync(
             CancellationToken ct)
         {

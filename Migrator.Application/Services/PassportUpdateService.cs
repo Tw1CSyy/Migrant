@@ -4,6 +4,9 @@ using Migrant.Data.Entities;
 
 namespace Migrant.Application.Services
 {
+    /// <summary>
+    /// Сервис для обновления базы данных
+    /// </summary>
     public class PassportUpdateService
     {
         private readonly PassportDbContext _db;
@@ -13,6 +16,11 @@ namespace Migrant.Application.Services
             _db = db;
         }
 
+        /// <summary>
+        /// Обновляет базу данных паспартов из исходных данных
+        /// </summary>
+        /// <param name="newList">Список паспортов из исходных данных</param>
+        /// <param name="updateDate">Дата обновления</param>
         public async Task UpdateAsync(
             IReadOnlyCollection<(string Series, string Number)> newList,
             DateTime updateDate,
