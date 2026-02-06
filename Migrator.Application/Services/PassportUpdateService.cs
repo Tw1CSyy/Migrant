@@ -73,19 +73,21 @@ namespace Migrant.Application.Services
 
             // REMOVE
             var toRemove = currentSet.Except(newSet);
-            foreach (var (series, number) in toRemove)
-            {
-                var passport = await _db.Passports
-                    .FirstAsync(p => p.Series == series && p.Number == number, ct);
 
+            var passports = await _db.Passports
+                .Where(p => toRemove.Any(r => r.Series == p.Series && r.Number == p.Number))
+                .ToListAsync(ct);
+
+            foreach (var passport in passports)
+            {
                 passport.IsInactive = false;
                 passport.UpdatedAt = updateDate;
 
                 _db.PassportChanges.Add(new PassportChangeEntity
                 {
                     Id = Guid.NewGuid(),
-                    Series = series,
-                    Number = number,
+                    Series = passport.Series,
+                    Number = passport.Number,
                     ChangeType = PassportChangeType.Removed,
                     ChangeDate = updateDate
                 });
@@ -93,8 +95,8 @@ namespace Migrant.Application.Services
                 _db.PassportStatusHistories.Add(new PassportStatusHistoryEntity
                 {
                     Id = Guid.NewGuid(),
-                    Series = series,
-                    Number = number,
+                    Series = passport.Series,
+                    Number = passport.Number,
                     IsInactive = false,
                     ChangedAt = updateDate
                 });
