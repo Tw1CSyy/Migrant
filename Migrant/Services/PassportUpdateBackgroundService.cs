@@ -1,6 +1,8 @@
-﻿using Microsoft.Extensions.Options;
+﻿using Cronos;
+using Microsoft.Extensions.Options;
 using Migrant.Application.Abstractions;
 using Migrant.Application.Options;
+using System;
 
 namespace Migrant.Services
 {
@@ -11,6 +13,7 @@ namespace Migrant.Services
     {
         private readonly IServiceScopeFactory _scopeFactory;
         private readonly PassportUpdateOptions _options;
+        private readonly CronExpression _cron;
 
         public PassportUpdateBackgroundService(
             IServiceScopeFactory scopeFactory,
@@ -18,6 +21,8 @@ namespace Migrant.Services
         {
             _scopeFactory = scopeFactory;
             _options = options.Value;
+            var runTime = TimeOnly.ParseExact(_options.RunAt, "HH:mm");
+            _cron = CronExpression.Parse($"{runTime.Minute} {runTime.Hour} * * *");
         }
 
         /// <summary>
@@ -28,8 +33,15 @@ namespace Migrant.Services
         {
             while (!stoppingToken.IsCancellationRequested)
             {
-                var delay = GetDelayUntilNextRun();
-                await Task.Delay(delay, stoppingToken);
+                var next = _cron.GetNextOccurrence(DateTimeOffset.Now, TimeZoneInfo.Local);
+
+                if (next == null)
+                    continue;
+
+                var delay = next.Value - DateTimeOffset.Now;
+
+                if (delay.TotalMilliseconds > 0)
+                    await Task.Delay(delay, stoppingToken);
 
                 await RunOnce(stoppingToken);
             }
@@ -47,20 +59,6 @@ namespace Migrant.Services
                 .GetRequiredService<IPassportUpdateRunner>();
 
             await runner.RunAsync(ct);
-        }
-
-        /// <summary>
-        /// Вычисляет интервал времени до следующего запуска обновления на основе времени, заданного в конфигурации.
-        /// </summary>
-        /// <returns>Временной интервал до следующего запуска фонового обновления.</returns>
-        private TimeSpan GetDelayUntilNextRun()
-        {
-            var runAt = TimeSpan.Parse(_options.RunAt);
-            var now = DateTime.Now.TimeOfDay;
-
-            return now < runAt
-                ? runAt - now
-                : TimeSpan.FromDays(1) - (now - runAt);
         }
     }
 }
