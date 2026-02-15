@@ -2,7 +2,7 @@
 using Migrant.Application.Options;
 using Migrant.Data.Context;
 using Migrant.Data.Entities;
-using static System.Runtime.InteropServices.JavaScript.JSType;
+using EFCore.BulkExtensions;
 
 namespace Migrant.Application.Services
 {
@@ -19,30 +19,28 @@ namespace Migrant.Application.Services
         }
 
         /// <summary>
-        /// Обновляет базу данных паспартов из исходных данных
+        /// Обновляет базу данных паспортов из исходных данных
         /// </summary>
         /// <param name="newList">Список паспортов из исходных данных</param>
-        public async Task UpdateAsync(
-            IReadOnlyCollection<PassportKey> newList,
-            CancellationToken ct = default)
+        public async Task UpdateAsync(IReadOnlyCollection<PassportKey> newList, CancellationToken ct = default)
         {
-            var currentInactive = await _db.Passports
+            var updateDate = DateTime.UtcNow;
+            var newSet = newList.ToHashSet();
+
+            var currentKeys = await _db.Passports
                 .Where(p => p.IsInactive)
-                .AsNoTracking()
+                .Select(p => new PassportKey(p.Series, p.Number))
                 .ToListAsync(ct);
 
-            var currentSet = currentInactive
-                .Select(p => new PassportKey(p.Series, p.Number))
-                .ToHashSet();
+            var currentSet = currentKeys.ToHashSet();
 
-            var newSet = newList.ToHashSet();
-            var updateDate = DateTime.Now;
+            var toAdd = newSet.Except(currentSet).ToList();
+            var toRemove = currentSet.Except(newSet).ToList();
 
             // ADD
-            var toAdd = newSet.Except(currentSet);
-            foreach (var key in toAdd)
+            if (toAdd.Count > 0)
             {
-                _db.Passports.Add(new PassportEntity
+                var passportsToAdd = toAdd.Select(key => new PassportEntity
                 {
                     Id = Guid.NewGuid(),
                     Series = key.Series,
@@ -50,59 +48,71 @@ namespace Migrant.Application.Services
                     IsInactive = true,
                     CreatedAt = updateDate,
                     UpdatedAt = updateDate
-                });
+                }).ToList();
 
-                _db.PassportChanges.Add(new PassportChangeEntity
+                var changesToAdd = toAdd.Select(key => new PassportChangeEntity
                 {
                     Id = Guid.NewGuid(),
                     Series = key.Series,
                     Number = key.Number,
                     ChangeType = PassportChangeType.Added,
                     ChangeDate = updateDate
-                });
+                }).ToList();
 
-                _db.PassportStatusHistories.Add(new PassportStatusHistoryEntity
+                var historiesToAdd = toAdd.Select(key => new PassportStatusHistoryEntity
                 {
                     Id = Guid.NewGuid(),
                     Series = key.Series,
                     Number = key.Number,
                     IsInactive = true,
                     ChangedAt = updateDate
-                });
+                }).ToList();
+
+                await _db.BulkInsertAsync(passportsToAdd, cancellationToken: ct);
+                await _db.BulkInsertAsync(changesToAdd, cancellationToken: ct);
+                await _db.BulkInsertAsync(historiesToAdd, cancellationToken: ct);
             }
 
-            // REMOVE
-            var toRemove = currentSet.Except(newSet);
-
-            var passports = await _db.Passports
-                .Where(p => toRemove.Any(r => r.Series == p.Series && r.Number == p.Number))
-                .ToListAsync(ct);
-
-            foreach (var passport in passports)
+            // UPDATE
+            if (toRemove.Count > 0)
             {
-                passport.IsInactive = false;
-                passport.UpdatedAt = updateDate;
+                var passportsToUpdate = await _db.Passports
+                    .Where(p => toRemove
+                        .Select(r => r.Series + r.Number)
+                        .Contains(p.Series + p.Number))
+                    .ToListAsync(ct);
 
-                _db.PassportChanges.Add(new PassportChangeEntity
+                foreach (var passport in passportsToUpdate)
                 {
-                    Id = Guid.NewGuid(),
-                    Series = passport.Series,
-                    Number = passport.Number,
-                    ChangeType = PassportChangeType.Removed,
-                    ChangeDate = updateDate
-                });
+                    passport.IsInactive = false;
+                    passport.UpdatedAt = updateDate;
+                }
 
-                _db.PassportStatusHistories.Add(new PassportStatusHistoryEntity
-                {
-                    Id = Guid.NewGuid(),
-                    Series = passport.Series,
-                    Number = passport.Number,
-                    IsInactive = false,
-                    ChangedAt = updateDate
-                });
+                await _db.BulkUpdateAsync(passportsToUpdate, cancellationToken: ct);
+
+                var changesToAdd = passportsToUpdate.Select(passport =>
+                    new PassportChangeEntity
+                    {
+                        Id = Guid.NewGuid(),
+                        Series = passport.Series,
+                        Number = passport.Number,
+                        ChangeType = PassportChangeType.Removed,
+                        ChangeDate = updateDate
+                    }).ToList();
+
+                var historiesToAdd = passportsToUpdate.Select(passport =>
+                    new PassportStatusHistoryEntity
+                    {
+                        Id = Guid.NewGuid(),
+                        Series = passport.Series,
+                        Number = passport.Number,
+                        IsInactive = false,
+                        ChangedAt = updateDate
+                    }).ToList();
+
+                await _db.BulkInsertAsync(changesToAdd, cancellationToken: ct);
+                await _db.BulkInsertAsync(historiesToAdd, cancellationToken: ct);
             }
-
-            await _db.SaveChangesAsync(ct);
         }
     }
 }
