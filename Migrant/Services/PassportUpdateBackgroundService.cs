@@ -12,7 +12,6 @@ namespace Migrant.Services
     public class PassportUpdateBackgroundService : BackgroundService
     {
         private readonly IServiceScopeFactory _scopeFactory;
-        private readonly PassportUpdateOptions _options;
         private readonly CronExpression _cron;
 
         public PassportUpdateBackgroundService(
@@ -20,9 +19,7 @@ namespace Migrant.Services
             IOptions<PassportUpdateOptions> options)
         {
             _scopeFactory = scopeFactory;
-            _options = options.Value;
-            var runTime = TimeOnly.ParseExact(_options.RunAt, "HH:mm");
-            _cron = CronExpression.Parse($"{runTime.Minute} {runTime.Hour} * * *");
+            _cron = CronExpression.Parse(options.Value.RunAt);
         }
 
         /// <summary>
