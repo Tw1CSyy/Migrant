@@ -18,6 +18,15 @@ namespace Migrant.Data.Context
         {
             modelBuilder.ApplyConfigurationsFromAssembly(
             typeof(PassportDbContext).Assembly);
+
+            modelBuilder.Entity<PassportEntity>()
+            .HasKey(p => new { p.Series, p.Number });
+
+            modelBuilder.Entity<PassportStatusHistoryEntity>()
+                .HasIndex(p => new { p.Series, p.Number });
+
+            modelBuilder.Entity<PassportChangeEntity>()
+                .HasIndex(p => p.ChangeDate);
         }
 
     }

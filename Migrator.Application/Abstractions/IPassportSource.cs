@@ -9,7 +9,7 @@ namespace Migrant.Application.Abstractions
 {
     public interface IPassportSource
     {
-        Task<IReadOnlyCollection<PassportKey>> GetPassportsAsync(
+        Task<Stream> GetFileStreamAsync(
             CancellationToken ct);
     }
 }

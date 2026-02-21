@@ -1,4 +1,7 @@
-﻿using Migrant.Application.Abstractions;
+﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Migrant.Application.Abstractions;
+using Migrant.Data.Services;
 
 namespace Migrant.Application.Services
 {
@@ -8,14 +11,17 @@ namespace Migrant.Application.Services
     public class PassportUpdateRunner : IPassportUpdateRunner
     {
         private readonly IPassportSource _source;
-        private readonly PassportUpdateService _updateService;
+        private readonly IServiceProvider _provider;
+        private readonly IConfiguration _config;
 
         public PassportUpdateRunner(
             IPassportSource source,
-            PassportUpdateService updateService)
+            IServiceProvider provider,
+            IConfiguration config)
         {
             _source = source;
-            _updateService = updateService;
+            _provider = provider;
+            _config = config;
         }
 
         /// <summary>
@@ -23,11 +29,15 @@ namespace Migrant.Application.Services
         /// </summary>
         public async Task RunAsync(CancellationToken ct)
         {
-            var passports = await _source.GetPassportsAsync(ct);
+            var stream = await _source.GetFileStreamAsync(ct);
 
-            await _updateService.UpdateAsync(
-                passports,
-                ct);
+            using var scope = _provider.CreateScope();
+
+            var importer = scope.ServiceProvider.GetRequiredService<PassportImportService>();
+            var merger = scope.ServiceProvider.GetRequiredService<PassportMergeService>();
+
+            await importer.ImportAsync(stream, ct);
+            await merger.MergeAsync(ct);
         }
     }
 }

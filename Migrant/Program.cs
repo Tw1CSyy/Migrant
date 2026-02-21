@@ -26,7 +26,6 @@ builder.Services.AddDbContext<PassportDbContext>(options =>
         builder.Configuration.GetConnectionString("Postgres"));
 });
 
-builder.Services.AddHttpClient<PassportFileDownloader>();
 builder.Services.AddHttpClient();
 
 builder.Services.Configure<PassportUpdateOptions>(
