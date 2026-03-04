@@ -27,8 +27,7 @@ namespace Migrant.Data.Configurations
             entity.Property(x => x.UpdatedAt)
                 .IsRequired();
 
-            entity.HasIndex(x => new { x.Series, x.Number })
-                .IsUnique();
+            entity.HasKey(p => new { p.Series, p.Number });
 
             entity.HasIndex(x => x.IsInactive);
         }

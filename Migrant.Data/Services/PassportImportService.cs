@@ -1,11 +1,6 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Npgsql;
-using System;
-using System.Collections.Generic;
 using System.IO.Compression;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Migrant.Data.Services
 {
@@ -23,26 +18,39 @@ namespace Migrant.Data.Services
             await using var conn = new NpgsqlConnection(_connectionString);
             await conn.OpenAsync(ct);
 
-            // очищаем staging
-            await using (var truncate = new NpgsqlCommand(
-                "TRUNCATE passport_staging", conn))
+            await using var tx = await conn.BeginTransactionAsync(ct);
+
+            try
             {
-                await truncate.ExecuteNonQueryAsync(ct);
+                await using (var truncate = new NpgsqlCommand(
+                    @"TRUNCATE TABLE public.""passport_staging"";", conn, tx))
+                {
+                    await truncate.ExecuteNonQueryAsync(ct);
+                }
+
+                using var archive = new ZipArchive(zipStream, ZipArchiveMode.Read);
+                var entry = archive.Entries.Last();
+
+                await using var csvStream = entry.Open();
+
+                // ВАЖНО: отдельный using-блок
+                await using (var importer = conn.BeginTextImport(
+                    @"COPY public.""passport_staging""(""series"", ""number"") 
+                    FROM STDIN (FORMAT csv, HEADER true)"))
+                {
+                    var importStream = ((StreamWriter)importer).BaseStream;
+
+                    await csvStream.CopyToAsync(importStream, 1024 * 1024, ct);
+                    await importStream.FlushAsync(ct);
+                } // ← importer.Dispose() происходит здесь
+
+                // Теперь соединение уже не в Copy state
+                await tx.CommitAsync(ct);
             }
-
-            using var archive = new ZipArchive(zipStream);
-            var entry = archive.Entries.First();
-
-            await using var csvStream = entry.Open();
-            using var reader = new StreamReader(csvStream);
-
-            await using var writer = conn.BeginTextImport(
-                "COPY passport_staging (series, number) FROM STDIN (FORMAT csv)");
-
-            while (!reader.EndOfStream)
+            catch
             {
-                var line = await reader.ReadLineAsync();
-               await writer.WriteLineAsync(line);
+                await tx.RollbackAsync(ct);
+                throw;
             }
         }
     }
