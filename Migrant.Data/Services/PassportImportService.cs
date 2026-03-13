@@ -33,18 +33,20 @@ namespace Migrant.Data.Services
 
                 await using var csvStream = entry.Open();
 
-                // ВАЖНО: отдельный using-блок
-                await using (var importer = conn.BeginTextImport(
-                    @"COPY public.""passport_staging""(""series"", ""number"") 
-                    FROM STDIN (FORMAT csv, HEADER true)"))
+                await using var importer = conn.BeginTextImport(
+                 @"COPY public.""passport_staging""(""series"", ""number"")
+                 FROM STDIN (FORMAT csv, HEADER true)");
+
+                using var reader = new StreamReader(csvStream);
+
+                char[] buffer = new char[1024 * 1024];
+
+                int read;
+                while ((read = await reader.ReadAsync(buffer, 0, buffer.Length)) > 0)
                 {
-                    var importStream = ((StreamWriter)importer).BaseStream;
+                    await importer.WriteAsync(buffer, 0, read);
+                }
 
-                    await csvStream.CopyToAsync(importStream, 1024 * 1024, ct);
-                    await importStream.FlushAsync(ct);
-                } // ← importer.Dispose() происходит здесь
-
-                // Теперь соединение уже не в Copy state
                 await tx.CommitAsync(ct);
             }
             catch
