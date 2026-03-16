@@ -8,6 +8,6 @@ namespace Migrant.Application.Abstractions
 {
     public interface IPassportUpdateRunner
     {
-        Task RunAsync(CancellationToken ct);
+        Task RunAsync(CancellationToken ct, Stream stream = null);
     }
 }

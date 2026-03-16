@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Configuration;
+using Migrant.Data.Abstractions;
 using Npgsql;
 using System;
 using System.Collections.Generic;
@@ -8,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace Migrant.Data.Services
 {
-    public class PassportMergeService
+    public class PassportMergeService : IPassportMergeService
     {
         private readonly string _connectionString;
 

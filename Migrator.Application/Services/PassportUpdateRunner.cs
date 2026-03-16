@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Migrant.Application.Abstractions;
+using Migrant.Data.Abstractions;
 using Migrant.Data.Services;
 
 namespace Migrant.Application.Services
@@ -13,31 +14,35 @@ namespace Migrant.Application.Services
         private readonly IPassportSource _source;
         private readonly IServiceProvider _provider;
         private readonly IConfiguration _config;
+        private readonly IPassportImportService _import;
+        private readonly IPassportMergeService _merge;
 
         public PassportUpdateRunner(
             IPassportSource source,
             IServiceProvider provider,
-            IConfiguration config)
+            IConfiguration config,
+            IPassportMergeService merge,
+            IPassportImportService import)
         {
             _source = source;
             _provider = provider;
             _config = config;
+            _merge = merge;
+            _import = import;
         }
 
         /// <summary>
         /// Запуск обновление базы данных
         /// </summary>
-        public async Task RunAsync(CancellationToken ct)
+        public async Task RunAsync(CancellationToken ct, Stream stream = null)
         {
-            var stream = await _source.GetFileStreamAsync(ct);
+            if(stream == null)
+                stream = await _source.GetFileStreamAsync(ct);
 
             using var scope = _provider.CreateScope();
 
-            var importer = scope.ServiceProvider.GetRequiredService<PassportImportService>();
-            var merger = scope.ServiceProvider.GetRequiredService<PassportMergeService>();
-
-            await importer.ImportAsync(stream, ct);
-            await merger.MergeAsync(ct);
+            await _import.ImportAsync(stream, ct);
+            await _merge.MergeAsync(ct);
         }
     }
 }

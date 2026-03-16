@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Migrant.Application.Abstractions;
 using Migrant.Application.Services;
+using Migrant.Data.Abstractions;
 using Migrant.Data.Services;
 
 namespace Migrant.Application.Extensions
@@ -18,8 +19,8 @@ namespace Migrant.Application.Extensions
             services.AddScoped<IPassportSource, PassportFileSource>();
             services.AddScoped<IPassportUpdateRunner, PassportUpdateRunner>();
             services.AddScoped<PassportQueryService>();
-            services.AddSingleton<PassportImportService>();
-            services.AddSingleton<PassportMergeService>();
+            services.AddScoped<IPassportImportService, PassportImportService>();
+            services.AddScoped<IPassportMergeService, PassportMergeService>();
             return services;
         }
     }

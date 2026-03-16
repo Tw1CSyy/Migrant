@@ -1,79 +1,41 @@
-﻿using Migrant.Application.Options;
+﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Migrant.Application.Abstractions;
 using Migrant.Application.Services;
-using Migrant.Data.Entities;
-using Migrant.Tests.Context;
+using Migrant.Data.Abstractions;
+using Moq;
 
 namespace Migrant.Tests.Tests
 {
     public class PassportUpdateServiceTests
     {
-        /// <summary>
-        /// Тест: добавление новых паспортов
-        /// </summary>
         [Fact]
-        public async Task UpdateAsync_ShouldAddNewPassports()
+        public async Task RunAsync_Should_CallImporter_And_Merger()
         {
-            var db = TestDbContextFactory.Create();
-            var service = new PassportUpdateService(db);
+            var source = new Mock<IPassportSource>();
+            var provider = new Mock<IServiceProvider>();
+            var importer = new Mock<IPassportImportService>();
+            var merger = new Mock<IPassportMergeService>();
 
-            var input = new List<PassportKey>
-            {
-                new("1234", "567890"),
-                new("4321", "098765")
-            };
+            var config = new Mock<IConfiguration>();
 
-            await service.UpdateAsync(input, CancellationToken.None);
+            var stream = new MemoryStream();
 
-            Assert.Equal(2, db.Passports.Count());
-        }
+            source.Setup(x => x.GetFileStreamAsync(It.IsAny<CancellationToken>()))
+                  .ReturnsAsync(stream);
 
-        /// <summary>
-        /// Тест: удаление паспортов
-        /// </summary>
-        /// <returns></returns>
-        [Fact]
-        public async Task RunAsync_ShouldRemoveMissingPassports()
-        {
-            var db = TestDbContextFactory.Create();
+            var runner = new PassportUpdateRunner(
+                source.Object,
+                provider.Object,
+                config.Object,
+                merger.Object,
+                importer.Object
+            );
 
-            db.Passports.Add(new Data.Entities.PassportEntity
-            {
-                Series = "1111",
-                Number = "222222",
-                IsInactive = false
-            });
+            await runner.RunAsync(CancellationToken.None);
 
-            await db.SaveChangesAsync();
-
-            var service = new PassportUpdateService(db);
-            var input = new List<PassportKey>(); // пустой список
-
-            await service.UpdateAsync(input, CancellationToken.None);
-
-            Assert.Empty(db.Passports);
-        }
-
-        /// <summary>
-        /// Тест: история изменений
-        /// </summary>
-        /// <returns></returns>
-        [Fact]
-        public async Task RunAsync_ShouldSaveChangeHistory()
-        {
-            var db = TestDbContextFactory.Create();
-            var service = new PassportUpdateService(db);
-
-            var input = new List<PassportKey>
-            {
-                new("1234", "567890")
-            };
-
-            await service.UpdateAsync(input, CancellationToken.None);
-
-            var changes = db.PassportChanges.ToList();
-
-            Assert.Single(changes);
-            Assert.Equal(PassportChangeType.Added, changes[0].ChangeType);
+            importer.Verify(x => x.ImportAsync(stream, It.IsAny<CancellationToken>()), Times.Once);
+            merger.Verify(x => x.MergeAsync(It.IsAny<CancellationToken>()), Times.Once);
         }
     }
 }

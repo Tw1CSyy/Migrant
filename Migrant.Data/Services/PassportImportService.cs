@@ -1,10 +1,11 @@
 ﻿using Microsoft.Extensions.Configuration;
+using Migrant.Data.Abstractions;
 using Npgsql;
 using System.IO.Compression;
 
 namespace Migrant.Data.Services
 {
-    public class PassportImportService
+    public class PassportImportService : IPassportImportService
     {
         private readonly string _connectionString;
 
