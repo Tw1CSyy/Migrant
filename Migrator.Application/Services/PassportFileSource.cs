@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Options;
 using Migrant.Application.Abstractions;
 using Migrant.Application.Options;
+using System.Net.Http.Headers;
 
 namespace Migrant.Application.Services
 {
@@ -11,25 +12,19 @@ namespace Migrant.Application.Services
     {
         private readonly PassportUpdateOptions _options;
         private readonly HttpClient _http;
-        private readonly ZipExtractor _zip;
-        private readonly PassportCsvReader _csv;
 
         public PassportFileSource(
             IOptions<PassportUpdateOptions> options,
-            HttpClient http,
-            ZipExtractor zip,
-            PassportCsvReader csv)
+            HttpClient http)
         {
             _options = options.Value;
             _http = http;
-            _zip = zip;
-            _csv = csv;
         }
 
         /// <summary>
         /// Получает исходный файл по пути в конфигурации проекта
         /// </summary>
-        public async Task<IReadOnlyCollection<PassportKey>> GetPassportsAsync(
+        public async Task<Stream> GetFileStreamAsync(
             CancellationToken ct)
         {
             Stream sourceStream;
@@ -39,10 +34,7 @@ namespace Migrant.Application.Services
             else
                 sourceStream = await _http.GetStreamAsync(_options.SourceUrl!, ct);
 
-            using var zipStream = sourceStream;
-            using var csv = await _zip.ExtractCsvAsync(zipStream);
-
-            return await _csv.ReadAsync(csv);
+            return sourceStream;
         }
     }
 }

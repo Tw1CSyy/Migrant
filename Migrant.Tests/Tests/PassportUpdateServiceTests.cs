@@ -1,79 +1,105 @@
-﻿using Migrant.Application.Options;
+﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Migrant.Application.Abstractions;
 using Migrant.Application.Services;
-using Migrant.Data.Entities;
-using Migrant.Tests.Context;
+using Migrant.Data.Abstractions;
+using Moq;
 
 namespace Migrant.Tests.Tests
 {
     public class PassportUpdateServiceTests
     {
         /// <summary>
-        /// Тест: добавление новых паспортов
-        /// </summary>
-        [Fact]
-        public async Task UpdateAsync_ShouldAddNewPassports()
-        {
-            var db = TestDbContextFactory.Create();
-            var service = new PassportUpdateService(db);
-
-            var input = new List<PassportKey>
-            {
-                new("1234", "567890"),
-                new("4321", "098765")
-            };
-
-            await service.UpdateAsync(input, CancellationToken.None);
-
-            Assert.Equal(2, db.Passports.Count());
-        }
-
-        /// <summary>
-        /// Тест: удаление паспортов
+        /// Основной тест приложения, вызывает полный цикл передачи данных в базу
         /// </summary>
         /// <returns></returns>
         [Fact]
-        public async Task RunAsync_ShouldRemoveMissingPassports()
+        public async Task RunAsync_Should_CallImporter_And_Merger()
         {
-            var db = TestDbContextFactory.Create();
+            var source = new Mock<IPassportSource>();
+            var provider = new Mock<IServiceProvider>();
+            var importer = new Mock<IPassportImportService>();
+            var merger = new Mock<IPassportMergeService>();
 
-            db.Passports.Add(new Data.Entities.PassportEntity
-            {
-                Series = "1111",
-                Number = "222222",
-                IsInactive = false
-            });
+            var config = new Mock<IConfiguration>();
 
-            await db.SaveChangesAsync();
+            var stream = new MemoryStream();
 
-            var service = new PassportUpdateService(db);
-            var input = new List<PassportKey>(); // пустой список
+            source.Setup(x => x.GetFileStreamAsync(It.IsAny<CancellationToken>()))
+                  .ReturnsAsync(stream);
 
-            await service.UpdateAsync(input, CancellationToken.None);
+            var runner = new PassportUpdateRunner(
+                source.Object,
+                provider.Object,
+                config.Object,
+                merger.Object,
+                importer.Object
+            );
 
-            Assert.Empty(db.Passports);
+            await runner.RunAsync(CancellationToken.None);
+
+            importer.Verify(x => x.ImportAsync(stream, It.IsAny<CancellationToken>()), Times.Once);
+            merger.Verify(x => x.MergeAsync(It.IsAny<CancellationToken>()), Times.Once);
         }
 
         /// <summary>
-        /// Тест: история изменений
+        /// Проверка порядка вызова Import - Merge
         /// </summary>
         /// <returns></returns>
         [Fact]
-        public async Task RunAsync_ShouldSaveChangeHistory()
+        public async Task RunAsync_ShouldCallImportBeforeMerge()
         {
-            var db = TestDbContextFactory.Create();
-            var service = new PassportUpdateService(db);
+            var sequence = new MockSequence();
 
-            var input = new List<PassportKey>
-            {
-                new("1234", "567890")
-            };
+            var source = new Mock<IPassportSource>();
+            var importer = new Mock<IPassportImportService>();
+            var merger = new Mock<IPassportMergeService>();
+            var config = new Mock<IConfiguration>();
 
-            await service.UpdateAsync(input, CancellationToken.None);
+            var stream = new MemoryStream();
+            source.Setup(x => x.GetFileStreamAsync(It.IsAny<CancellationToken>()))
+                  .ReturnsAsync(stream);
 
-            var changes = db.PassportChanges.ToList();
+            importer.InSequence(sequence)
+                .Setup(x => x.ImportAsync(stream, It.IsAny<CancellationToken>()))
+                .Returns(Task.CompletedTask);
 
-            Assert.Single(changes);
-            Assert.Equal(PassportChangeType.Added, changes[0].ChangeType);
+            merger.InSequence(sequence)
+                .Setup(x => x.MergeAsync(It.IsAny<CancellationToken>()))
+                .Returns(Task.CompletedTask);
+
+            var runner = new PassportUpdateRunner(
+                source.Object, null, config.Object, merger.Object, importer.Object);
+
+            await runner.RunAsync(CancellationToken.None);
+        }
+
+        /// <summary>
+        /// Если ImportAsync падает — MergeAsync не вызывается
+        /// </summary>
+        /// <returns></returns>
+        [Fact]
+        public async Task RunAsync_WhenImportFails_ShouldNotCallMerge()
+        {
+            var source = new Mock<IPassportSource>();
+            var importer = new Mock<IPassportImportService>();
+            var merger = new Mock<IPassportMergeService>();
+            var config = new Mock<IConfiguration>();
+
+            var stream = new MemoryStream();
+
+            source.Setup(x => x.GetFileStreamAsync(It.IsAny<CancellationToken>()))
+                  .ReturnsAsync(stream);
+
+            importer.Setup(x => x.ImportAsync(stream, It.IsAny<CancellationToken>()))
+                    .ThrowsAsync(new Exception());
+
+            var runner = new PassportUpdateRunner(
+                source.Object, null, config.Object, merger.Object, importer.Object);
+
+            await Assert.ThrowsAsync<Exception>(() => runner.RunAsync(CancellationToken.None));
+
+            merger.Verify(x => x.MergeAsync(It.IsAny<CancellationToken>()), Times.Never);
         }
     }
 }
